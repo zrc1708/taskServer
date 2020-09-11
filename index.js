@@ -12,7 +12,7 @@
    
     app.use(cors());//解决跨域问题
     
-
+    app.use(Bodyparser())
 
     
     //加载静态资源
