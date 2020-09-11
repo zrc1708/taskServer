@@ -32,11 +32,16 @@ loginrouter.get('/login', async ctx => {
         const [rs] = await connection.query(sql);
         connection.end(function(err){})
 
-        if(rs.length>0){
+        if(rs.length > 0 && rs[0].state === '0'){
             ctx.body = {
                 code:200,
                 tips:'登录成功',
                 id:rs[0].id
+            }
+        }else if(rs.length > 0 && rs[0].state === '1'){
+            ctx.body = {
+                code:400,
+                tips:'账户已冻结',
             }
         }else{
             ctx.body = {
