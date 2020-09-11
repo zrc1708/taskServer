@@ -10,9 +10,8 @@ admrouter.get('/getalladm', async ctx => {
     const sql = "SELECT * FROM administrator";
     const [rs] = await connection.query(sql);
     connection.end(function(err){})
-    ctx.body = {
-        rs
-    }
+
+    
 });
 
 module.exports = admrouter

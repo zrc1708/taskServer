@@ -13,6 +13,8 @@
     app.use(cors());//解决跨域问题
     
 
+
+    
     //加载静态资源
     app.use(Static('./static', {
         prefix: '/static',
@@ -21,9 +23,11 @@
 
     const admrouter = require('./admrouter.js')
     const userrouter = require('./userrouter.js')
+    const loginrouter = require('./loginrouter.js')
 
     app.use(userrouter.routes());
     app.use(admrouter.routes());
+    app.use(loginrouter.routes());
 
     app.listen(8877, () => {
         console.log('服务器启动成功')
