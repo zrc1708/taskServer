@@ -22,7 +22,7 @@ Date.prototype.Format = function (fmt) { // author: meizz
 }
 
 //查询所有用户信息接口(测试)
-userrouter.get('/getalluser', async ctx => {
+userrouter.get('/test', async ctx => {
     const connection = await Mysql.createConnection(mysql_nico)
     const sql = "SELECT * FROM user";
     const [rs] = await connection.query(sql);

@@ -10,6 +10,7 @@
 
     const app = new Koa(); //类似于实例化
    
+    app.use(koaBody());
     app.use(cors());//解决跨域问题
     
     app.use(Bodyparser())

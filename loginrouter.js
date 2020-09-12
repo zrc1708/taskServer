@@ -8,13 +8,13 @@ const loginrouter = new Router()
 loginrouter.get('/login', async ctx => {
     const username = ctx.request.query.username.trim()
     const password = ctx.request.query.password.trim()
-    const identity = ctx.request.query.identity
-
+    const identity = ctx.request.query.radio
     const connection = await Mysql.createConnection(mysql_nico)
     if(identity === '1'){
         const sql = `SELECT * FROM administrator WHERE username = '${username}' and password = '${password}'`;
         const [rs] = await connection.query(sql);
         connection.end(function(err){})
+
         if(rs.length>0){
             ctx.body = {
                 code:200,
@@ -32,11 +32,16 @@ loginrouter.get('/login', async ctx => {
         const [rs] = await connection.query(sql);
         connection.end(function(err){})
 
-        if(rs.length>0){
+        if(rs.length > 0 && rs[0].state === '0'){
             ctx.body = {
                 code:200,
                 tips:'登录成功',
                 id:rs[0].id
+            }
+        }else if(rs.length > 0 && rs[0].state === '1'){
+            ctx.body = {
+                code:400,
+                tips:'账户已冻结',
             }
         }else{
             ctx.body = {
