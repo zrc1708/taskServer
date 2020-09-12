@@ -124,17 +124,136 @@ userrouter.post('/withdrawal', async ctx => {
 });
 
 // 根据id获取交易记录
-userrouter.get('/getusertransaction/:id', async ctx => {
+userrouter.get('/getusertransaction/:id/:currentpage/:pagesize', async ctx => {
     let id = ctx.params.id
+    let currentpage = ctx.params.currentpage
+    let pagesize = ctx.params.pagesize
+
+    let num = (currentpage-1)*pagesize
 
     const connection = await Mysql.createConnection(mysql_nico)
-    const sql = `SELECT * FROM transaction where userid = ${id}`;
+    const sql = `select t.* from (
+                    SELECT a.id,a.otherid,b.username,a.money,a.time,a.state,a.balance FROM transaction a,user b 
+                    where a.userid = ${id} and a.otherid = b.id 
+                    union all   
+                    SELECT id,otherid,otherid,money,time,state,balance FROM transaction where userid = ${id} and otherid IS NULL) t 
+                order by t.id desc limit ${num} , ${pagesize};`
     const [rs] = await connection.query(sql);
     connection.end(function(err){})
+
     ctx.body = {
         code:200,
         rs
     }
 });
+
+// 根据id获取交易记录总数
+userrouter.get('/getcountusertransaction/:id', async ctx => {
+    let id = ctx.params.id
+
+    const connection = await Mysql.createConnection(mysql_nico)
+    const sql = `select count(*) from (
+                    SELECT a.id,a.otherid,b.username,a.money,a.time,a.state,a.balance FROM transaction a,user b 
+                    where a.userid = ${id} and a.otherid = b.id 
+                    union all   
+                    SELECT id,otherid,otherid,money,time,state,balance FROM transaction where userid = ${id} and otherid IS NULL) t 
+                order by t.id desc;`;
+    const [rs] = await connection.query(sql);
+    connection.end(function(err){})
+    ctx.body = {
+        code:200,
+        rs:rs[0]['count(*)']
+    }
+});
+
+// 根据名称查询用户是否存在 
+userrouter.get('/checktouser/:username', async ctx => {
+    let username = ctx.params.username
+
+    const connection = await Mysql.createConnection(mysql_nico)
+    const sql = `SELECT id FROM user where username = '${username}'`;
+    const [rs] = await connection.query(sql);
+    connection.end(function(err){})
+
+    if(rs.length===0){
+        return ctx.body = {
+            code:201,
+            message:'用户不存在'
+        }
+    }
+
+    ctx.body = {
+        code:200,
+        touserid:rs[0].id
+    }
+});
+
+// 转账
+userrouter.post('/transfer', async ctx => {
+    const data = ctx.request.body
+
+    const connection = await Mysql.createConnection(mysql_nico)
+
+    // 查询自己的余额
+    const sql1 = `select money from user WHERE id = '${data.id}';`
+    const [rs1] = await connection.query(sql1);
+
+    let money = Number(rs1[0].money)-Number(data.money)
+    if(money<0){
+        return ctx.body = {
+            code:400,
+            message:'账户余额不足'
+        }
+    }
+
+    // 查询对方的余额
+    const sql2 = `select money from user WHERE id = '${data.toid}';`
+    const [rs2] = await connection.query(sql2);
+    toUserMoney = rs2[0].money
+
+    // 减少自己的余额
+    const sql3 = `UPDATE user SET money = '${money}' WHERE id = '${data.id}';`
+    const [rs3] = await connection.query(sql3);
+
+    // // 增加对方的余额
+    const sql4 = `UPDATE user SET money = '${toUserMoney+Number(data.money)}' WHERE id = '${data.toid}';`
+    const [rs4] = await connection.query(sql4);
+
+    // 添加我方转账交易记录
+    let time = new Date().Format("yyyy-MM-dd hh:mm:ss");
+    const sql5 = `INSERT INTO transaction ( otherid , money , time , state , userid ,balance ) 
+                    VALUES ( '${data.toid}','${data.money}', '${time}','2','${data.id}','${money}');`
+    const [rs5] = await connection.query(sql5);
+
+    // 添加对方收款交易记录
+    const sql6 = `INSERT INTO transaction ( otherid , money , time , state , userid ,balance ) 
+    VALUES ( '${data.id}','${data.money}', '${time}','3','${data.toid}','${toUserMoney+Number(data.money)}');`
+    const [rs6] = await connection.query(sql6);
+
+    connection.end(function(err){})
+
+    ctx.body = {
+        code:200,
+        message:'转账成功'
+    }
+});
+
+// 修改密码
+userrouter.post('/usermidifypwd', async ctx => {
+    const data = ctx.request.body
+
+    const connection = await Mysql.createConnection(mysql_nico)
+
+    const sql = `UPDATE user SET password = '${data.pwd}' WHERE id = '${data.id}';`
+    const [rs] = await connection.query(sql);
+
+    connection.end(function(err){})
+
+    ctx.body = {
+        code:200,
+        rs
+    }
+});
+
 
 module.exports = userrouter
