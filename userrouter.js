@@ -171,7 +171,7 @@ userrouter.get('/checktouser/:username', async ctx => {
     let username = ctx.params.username
 
     const connection = await Mysql.createConnection(mysql_nico)
-    const sql = `SELECT id FROM user where username = '${username}'`;
+    const sql = `SELECT id,state FROM user where username = '${username}'`;
     const [rs] = await connection.query(sql);
     connection.end(function(err){})
 
@@ -184,7 +184,8 @@ userrouter.get('/checktouser/:username', async ctx => {
 
     ctx.body = {
         code:200,
-        touserid:rs[0].id
+        touserid:rs[0].id,
+        touserstate:rs[0].state
     }
 });
 
