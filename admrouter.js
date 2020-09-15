@@ -25,7 +25,7 @@ admrouter.get('/getalluser', async ctx => {
         }
     }else{
         ctx.body = {
-            code:201,
+            code:400,
             tips:'查询失败'
         }
     }
@@ -52,7 +52,7 @@ admrouter.get('/getusedaccount', async ctx => {
         }
     }else{
         ctx.body = {
-            code:201,
+            code:400,
             tips:'查询失败'
         }
     }
@@ -61,24 +61,46 @@ admrouter.get('/getusedaccount', async ctx => {
 //开户接口
 admrouter.post('/adduser',async ctx => {
     const data = ctx.request.body
-    const money = data.money * 1
+
     const connection = await Mysql.createConnection(mysql_nico)
-    const sql = `INSERT INTO user (username,password,email,money,phone,state) VALUE
-    ('${data.username}', '${data.password}', '${data.email}', ${money}, '${data.phone}', '${data.state}')`
-    const [rs] = await connection.query(sql)
+    const [rs] = await connection.query('SELECT * FROM user')
+
+    var code
+    rs.some( item => {
+        if(item.username == data.username){
+            code = 201
+            ctx.body = {
+                code,
+                tips:'用户名已存在'
+            }
+            return true
+        }
+    })
+
     connection.end(function(err){})
 
-    if (rs.affectedRows > 0) {
-        ctx.body = {
-            code:200,
-            tips:'开户成功'
-        }
-    } else {
-        ctx.body = {
-            code:201,
-            tips:'开户失败'
+    if(code != 201){
+        const connection = await Mysql.createConnection(mysql_nico)
+        const sql = `INSERT INTO user (username,password,email,money,phone,state) VALUE
+        ('${data.username}', '${data.password}', '${data.email}', ${data.money * 1}, '${data.phone}', '${data.state}')`
+        const [rs2] = await connection.query(sql)
+        connection.end(function(err){})
+
+        if (rs2.affectedRows > 0) {
+            ctx.body = {
+                code:200,
+                tips:'开户成功'
+            }
+        } else {
+            ctx.body = {
+                code:400,
+                tips:'开户失败'
+            }
         }
     }
+    
+
+    
 })
 
 //根据ID修改密码
@@ -97,7 +119,7 @@ admrouter.get('/modifypwd',async ctx => {
         }
     } else {
         ctx.body = {
-            code:201,
+            code:400,
             tips:'修改密码失败'
         }
     }
@@ -119,7 +141,7 @@ admrouter.get('/medata',async ctx => {
         }
     } else {
         ctx.body = {
-            code:201,
+            code:400,
             tips:'个人信息获取失败'
         }
     }
@@ -151,7 +173,7 @@ admrouter.get('/getallnews', async ctx => {
         }
     }else{
         ctx.body = {
-            code:201,
+            code:400,
             tips:'查询失败'
         }
     }
@@ -174,7 +196,7 @@ admrouter.post('/addnews', async ctx => {
         }
     } else {
         ctx.body = {
-            code:201,
+            code:400,
             tips:'推送新闻失败'
         }
     }
@@ -195,7 +217,7 @@ admrouter.post('/updateuser',async ctx => {
         }
     } else {
         ctx.body = {
-            code:201,
+            code:400,
             tips:'修改失败'
         }
     }
@@ -216,7 +238,49 @@ admrouter.get('/deleteuser', async ctx => {
         }
     } else {
         ctx.body = {
-            code:201,
+            code:400,
+            tips:'删除失败'
+        }
+    }
+})
+
+//根据id更新新闻
+admrouter.post('/updatenews',async ctx => {
+    const data = ctx.request.body
+    const date = getDate(data.publishtime)
+    const connection = await Mysql.createConnection(mysql_nico)
+    const sql = `UPDATE news SET title='${data.title}',content='${data.content}',publishtime='${date}',author='${data.author}' WHERE id = ${data.id}`
+    const [rs] = await connection.query(sql)
+    connection.end(function(err){})
+
+    if (rs.affectedRows > 0) {
+        ctx.body = {
+            code:200,
+            tips:'更新成功'
+        }
+    } else {
+        ctx.body = {
+            code:400,
+            tips:'更新失败'
+        }
+    }
+})
+//根据id删除新闻
+admrouter.get('/deletenews',async ctx => {
+    const id = ctx.request.query.id
+    const connection = await Mysql.createConnection(mysql_nico)
+    const sql = `DELETE FROM news WHERE ?? = ?`
+    const [rs] = await connection.query(sql, ['id', id])
+    connection.end(function(err){})
+
+    if (rs.affectedRows > 0) {
+        ctx.body = {
+            code:200,
+            tips:'删除成功'
+        }
+    } else {
+        ctx.body = {
+            code:400,
             tips:'删除失败'
         }
     }
